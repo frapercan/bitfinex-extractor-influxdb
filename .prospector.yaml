@@ -1,0 +1,40 @@
+output-format: grouped
+
+strictness: medium
+test-warnings: false
+doc-warnings: false
+autodetect: false
+member-warnings: false
+
+ignore-paths:
+  - docs
+  - core/tests
+  - build
+  - .tox
+
+ignore-patterns:
+  - .*\.feature$
+
+pylint:
+  disable:
+    - protected-access
+    - unused-argument
+    - not-context-manager
+    - raising-bad-type
+    - not-callable
+  options:
+    max-line-length: 120
+    max-args: 8
+
+pep257:
+  disable:
+    - D104
+    - D105
+    - D200
+    - D203
+    - D204
+    - D205
+
+pep8:
+  options:
+    max-line-length: 120
