@@ -5,9 +5,8 @@ bitfinex-extractor-influxdb
     :target: https://pypi.python.org/pypi/bitfinex-extractor-influxdb
     :alt: Latest PyPI version
 
-.. image:: https://travis-ci.com/github/frapercan/bitfinex-extractor-influxdb.png
-   :target: https://travis-ci.com/frapercan/bitfinex-extractor-influxdb.svg?branch=main
-   :alt: Latest Travis CI build status
+.. image:: https://travis-ci.com/frapercan/bitfinex-extractor-influxdb.svg?branch=main
+    :target: https://travis-ci.com/frapercan/bitfinex-extractor-influxdb
 
 Python bitfinex scrapping functions. Storing results into InfluxDB
 
