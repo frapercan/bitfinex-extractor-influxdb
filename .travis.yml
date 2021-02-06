@@ -5,4 +5,4 @@ python:
 install: pip install tox-travis
 script: tox
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash) -f .coverage
