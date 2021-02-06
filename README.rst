@@ -8,8 +8,9 @@ bitfinex-extractor-influxdb
 .. image:: https://travis-ci.com/frapercan/bitfinex-extractor-influxdb.svg?branch=main
     :target: https://travis-ci.com/frapercan/bitfinex-extractor-influxdb
 
-.. image:: https://codecov.io/gh/tox-dev/tox-travis/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/tox-dev/tox-travis
+.. image:: https://codecov.io/gh/frapercan/bitfinex-extractor-influxdb/branch/main/graph/badge.svg?token=Z5KZG308CW
+    :target: https://codecov.io/gh/frapercan/bitfinex-extractor-influxdb
+
 
 Python bitfinex scrapping functions. Storing results into InfluxDB
 
