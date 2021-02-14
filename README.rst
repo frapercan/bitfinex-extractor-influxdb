@@ -11,6 +11,9 @@ bitfinex-extractor-influxdb
 .. image:: https://codecov.io/gh/frapercan/bitfinex-extractor-influxdb/branch/main/graph/badge.svg?token=Z5KZG308CW
     :target: https://codecov.io/gh/frapercan/bitfinex-extractor-influxdb
 
+.. image:: https://readthedocs.org/projects/pip/badge/?version=stable
+    :target: https://pip.pypa.io/en/stable/?badge=stable
+    :alt: Documentation Status
 
 Python bitfinex scrapping functions. Storing results into InfluxDB
 
