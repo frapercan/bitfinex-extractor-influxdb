@@ -1,5 +1,5 @@
 # Sample Test passing with nose and pytest
-from bitfinex_extractor_influxdb.hola import hola
+from bitfinex_extractor_influxdb.main import about_me
 
 def test_pass():
-    hola()
+    assert 0 == 0
