@@ -3,6 +3,9 @@
 #
 -r requirements_build.txt
 
+
+pendulum
+pymysql
 coverage
 mock
 prospector
