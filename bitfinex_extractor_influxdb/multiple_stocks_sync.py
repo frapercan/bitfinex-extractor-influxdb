@@ -55,9 +55,34 @@ class DataSync:
     def run(self):
         for pair in self.pairs:
             for timeframe in self.timeframes:
-                self.extract_series(pair, timeframe)
+                self._extract_series(pair, timeframe)
 
-    def extract_series(self, pair, timeframe):
+    def _extract_series(self, pair, timeframe):
+        last_sample_timestamp_ns = self._get_last_sample_timestamp(pair, timeframe) * 1000
+        while 1:
+            url = url_generator(pair, timeframe, last_sample_timestamp_ns)
+            json_response = requests.get(url)
+            response = json.loads(json_response.text)
+
+            if not self._check_bitfinex_connection(response):
+                continue
+
+            last_response_timestamp_ns = int(response[-1][0])
+            print('pre')
+            if compare_timestamps(last_sample_timestamp_ns, last_response_timestamp_ns):
+                self.logger.info('Correctly sync %s - %s', pair, timeframe)
+                print('dentro')
+                break
+            try:
+                self.client.write_api().write(record=serialize_points(pair, timeframe, response), org=self.org,
+                                              bucket=self.bucket)
+            except:
+                break
+
+            last_sample_timestamp_ns = last_response_timestamp_ns
+            time.sleep(1)
+
+    def _get_last_sample_timestamp(self, pair, timeframe):
         last_ts_query = f'from(bucket: "{self.bucket}") \
             |> range(start: -9999d) \
             |> filter(fn: (r) => r["_measurement"] == "{pair}") \
@@ -69,37 +94,26 @@ class DataSync:
             last_sample_date = self.client.query_api().query_data_frame(last_ts_query, org=self.org)['_time'][0]
         except KeyError:
             last_sample_date = self.timeseries_start
-        last_sample_timestamp = int(last_sample_date.timestamp())
-        while 1:
-            url = url_generator(pair, timeframe, last_sample_timestamp)
-            json_response = requests.get(url)
-            response = json.loads(json_response.text)
-            time.sleep(self.request_delay)
-            if 'error' in response:
-                # Check rate limit
-                if response[1] == ERROR_CODE_RATE_LIMIT:
-                    print('Error: reached the limit number of requests. Wait 120 seconds...')
-                    time.sleep(120)
-                    continue
-                # Check platform status
-                if response[1] == ERROR_CODE_START_MAINTENANCE:
-                    print('Error: platform is in maintenance. Forced to stop all requests.')
-                    time.sleep(1)
-                    continue
-            else:
-                last_response_timestamp = int(response[-1][0]) // 1000  # ns to ms
-                if last_sample_timestamp == last_response_timestamp:
-                    self.logger.info('Correctly sync %s - %s - %s', pair, timeframe,
-                                     pendulum.from_timestamp(last_response_timestamp))
-                    break
-                last_sample_timestamp = last_response_timestamp
-                self.client.write_api().write(record=serialize_points(pair, timeframe, response), org=self.org,
-                                              bucket=self.bucket)
+        return int(last_sample_date.timestamp())
+
+    def _check_bitfinex_connection(self, response):
+        if 'error' in response:
+            # Check rate limit
+            if response[1] == ERROR_CODE_RATE_LIMIT:
+                self.logger.info('Error: reached the limit number of requests. Wait 120 seconds...')
+                time.sleep(120)
+
+            # Check platform status
+            if response[1] == ERROR_CODE_START_MAINTENANCE:
+                self.logger.info('Error: platform is in maintenance. Forced to stop all requests.')
+                time.sleep(1)
+            return False
+        return True
 
 
-def url_generator(pair, timeframe, last_sample_timestamp):
+def url_generator(pair, timeframe, last_sample_timestamp_ns):
     return HTTP_API_URL + f'candles/trade:{timeframe}:{pair}' \
-                          f'/hist?limit=1000&start={last_sample_timestamp * 1000}&sort=1'
+                          f'/hist?limit=1000&start={last_sample_timestamp_ns}&sort=1'
 
 
 def serialize_points(pair, timeframe, response):
@@ -119,9 +133,12 @@ def serialize_points(pair, timeframe, response):
             .field('volume', volume) \
             .time(timestamp, WritePrecision.NS)
         points.append(point)
-    # Return True is operation is successful
     return points
 
 
+def compare_timestamps(last_sample_timestamp_ns, last_response_timestamp_ns):
+    return last_sample_timestamp_ns == last_response_timestamp_ns
+
+
 if __name__ == "__main__":
-    DataSync()
+    DataSync().run()
