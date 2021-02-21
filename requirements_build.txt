@@ -4,4 +4,4 @@
 -r requirements.txt
 
 bumpversion
-twine==1.*
+twine
