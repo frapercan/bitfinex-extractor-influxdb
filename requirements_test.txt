@@ -5,7 +5,6 @@
 
 
 pendulum
-pymysql
 coverage
 mock
 prospector
