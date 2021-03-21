@@ -68,19 +68,17 @@ class DataSync:
                 continue
 
             last_response_timestamp_ns = int(response[-1][0])
-            print('pre')
             if compare_timestamps(last_sample_timestamp_ns, last_response_timestamp_ns):
                 self.logger.info('Correctly sync %s - %s', pair, timeframe)
-                print('dentro')
                 break
             try:
                 self.client.write_api().write(record=serialize_points(pair, timeframe, response), org=self.org,
                                               bucket=self.bucket)
-            except:
-                break
+            except Exception as e:
+                self.logger.warning('Couldnt write into INFLUXDB: %s', e)
+                continue
 
             last_sample_timestamp_ns = last_response_timestamp_ns
-            time.sleep(1)
 
     def _get_last_sample_timestamp(self, pair, timeframe):
         last_ts_query = f'from(bucket: "{self.bucket}") \
@@ -92,6 +90,7 @@ class DataSync:
             |> yield(name: "last")'
         try:
             last_sample_date = self.client.query_api().query_data_frame(last_ts_query, org=self.org)['_time'][0]
+
         except KeyError:
             last_sample_date = self.timeseries_start
         return int(last_sample_date.timestamp())
@@ -101,7 +100,7 @@ class DataSync:
             # Check rate limit
             if response[1] == ERROR_CODE_RATE_LIMIT:
                 self.logger.info('Error: reached the limit number of requests. Wait 120 seconds...')
-                time.sleep(120)
+                time.sleep(20)
 
             # Check platform status
             if response[1] == ERROR_CODE_START_MAINTENANCE:
@@ -112,6 +111,8 @@ class DataSync:
 
 
 def url_generator(pair, timeframe, last_sample_timestamp_ns):
+    print(HTTP_API_URL + f'candles/trade:{timeframe}:{pair}' \
+                         f'/hist?limit=1000&start={last_sample_timestamp_ns}&sort=1')
     return HTTP_API_URL + f'candles/trade:{timeframe}:{pair}' \
                           f'/hist?limit=1000&start={last_sample_timestamp_ns}&sort=1'
 
