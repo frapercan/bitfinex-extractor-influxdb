@@ -16,7 +16,7 @@ def read(filename):
 
 setup(
     name="bitfinex_extractor_influxdb",
-    version="0.5.0",
+    version="0.6.0",
     url="https://github.com/frapercan/bitfinex-extractor-influxdb.git",
     license='MIT',
 

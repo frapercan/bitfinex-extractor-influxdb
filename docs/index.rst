@@ -10,13 +10,12 @@ Welcome to Bitfinex Extractor to InfluxDB's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   modules
+Package
+=======
+.. automodule:: bitfinex_extractor_influxdb.exchange_db_sync
+   :members:
+
+.. autoclass:: bitfinex_extractor_influxdb.exchange_db_sync.DataSync
+   :members:
 
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
