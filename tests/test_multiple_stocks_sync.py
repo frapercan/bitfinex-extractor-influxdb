@@ -1,7 +1,7 @@
 import os
 
 from mock import patch, MagicMock, Mock
-from bitfinex_extractor_influxdb import multiple_stocks_sync
+from bitfinex_extractor_influxdb import exchange_db_sync
 import pickle
 
 mock_pairs = ['tBTCUSD', 'tIOTUSD', 'tLTCBTC']
@@ -11,14 +11,14 @@ mock_fetch_pairs = [{'id': 3, 'name': 'tBTCUSD'}, {'id': 1, 'name': 'tIOTUSD'}, 
 mock_fetch_timeframes = [{'id': 3, 'interval': '1m'}, {'id': 1, 'interval': '15m'}, {'id': 2, 'interval': '1h'}]
 
 environment_variables = {
-    "HOST": "MYSQL_HOST",
-    "USER": "MYSQL_USER",
-    "PASSWORD": "MYSQL_PASSWORD",
-    "DATABASE": "MYSQL_DATABASE",
-    "URL": "INFLUXDB_HOST",
-    "TOKEN": "INFLUXDB_TOKEN",
-    "ORG": "INFLUXDB_ORG",
-    "BUCKET": "INFLUXDB_BUCKET",
+    "MYSQL_HOST": "MYSQL_HOST",
+    "MYSQL_USER": "MYSQL_USER",
+    "MYSQL_PASSWORD": "MYSQL_PASSWORD",
+    "MYSQL_DATABASE": "MYSQL_DATABASE",
+    "INFLUX_URL": "INFLUXDB_HOST",
+    "INFLUX_TOKEN": "INFLUXDB_TOKEN",
+    "INFLUX_ORG": "INFLUXDB_ORG",
+    "INFLUX_BUCKET": "INFLUXDB_BUCKET",
     "STARTING_YEAR": "1970",
     "REQUEST_DELAY": "1",
 }
@@ -51,19 +51,19 @@ def _mock_response(
     return mock_resp
 
 
-@patch("bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync.query_timeframes")
-@patch("bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync.query_pairs")
+@patch("bitfinex_extractor_influxdb.exchange_db_sync.DataSync.query_timeframes")
+@patch("bitfinex_extractor_influxdb.exchange_db_sync.DataSync.query_pairs")
 @patch("pymysql.connect")
 @patch.dict(os.environ, environment_variables)
 def test_initialize(mock_pymsql, mock_query_pairs, mock_query_timeframes):
     mock_query_pairs.return_value = mock_pairs
     mock_query_timeframes.return_value = mock_timeframes
 
-    sync = multiple_stocks_sync.DataSync()
+    sync = exchange_db_sync.DataSync()
     assert sync.pairs == mock_pairs
     assert sync.timeframes == mock_timeframes
-    assert sync.bucket == environment_variables['BUCKET']
-    assert sync.org == environment_variables['ORG']
+    assert sync.bucket == environment_variables['INFLUX_BUCKET']
+    assert sync.org == environment_variables['INFLUX_ORG']
     assert sync.request_delay == int(environment_variables['REQUEST_DELAY'])
     return sync
 
@@ -80,7 +80,7 @@ def test_query_timeframes():
     assert sync.query_timeframes() == mock_timeframes
 
 
-@patch("bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync._extract_series")
+@patch("bitfinex_extractor_influxdb.exchange_db_sync.DataSync._extract_series")
 def test_run(mock_extract_series):
     sync = test_initialize()
     sync.run()
@@ -112,69 +112,69 @@ mock_last_sample_timestamp = 1613908800
 
 @patch('influxdb_client.client.write_api.WriteApi.write',
        MagicMock(return_value=False))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.compare_timestamps',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.compare_timestamps',
        MagicMock(side_effect=[False, True]))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync._check_bitfinex_connection',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.DataSync._check_bitfinex_connection',
        MagicMock(return_value=True))
 @patch('requests.get', MagicMock(return_value=pickle.load(open("./tests/bitfinex_response_candle.p", "rb"))))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.url_generator',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.url_generator',
        MagicMock(return_value=mock_url_generated))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync._get_last_sample_timestamp',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.DataSync._get_last_sample_timestamp',
        MagicMock(return_value=mock_last_sample_timestamp))
 def test_extract_series():
     sync = test_initialize()
     sync._extract_series(pair_test, timeframe_test)
     assert sync._get_last_sample_timestamp.call_count == 1
-    assert multiple_stocks_sync.url_generator.call_count == 2
+    assert exchange_db_sync.url_generator.call_count == 2
     assert sync._check_bitfinex_connection.call_count == 2
-    assert multiple_stocks_sync.compare_timestamps.call_count == 2
-    assert sync.client.write_api().write.call_count == 1
+    assert exchange_db_sync.compare_timestamps.call_count == 2
+    assert sync.influx_client.write_api().write.call_count == 1
 
 
 # Bitfinex connection not stablished at first attempt, it will finish sync at second try.
 @patch('influxdb_client.client.write_api.WriteApi.write',
        MagicMock(return_value=False))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.compare_timestamps',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.compare_timestamps',
        MagicMock(return_value=True))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync._check_bitfinex_connection',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.DataSync._check_bitfinex_connection',
        MagicMock(side_effect=[False, True]))
 @patch('requests.get', MagicMock(return_value=pickle.load(open("./tests/bitfinex_response_candle.p", "rb"))))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.url_generator',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.url_generator',
        MagicMock(return_value=mock_url_generated))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync._get_last_sample_timestamp',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.DataSync._get_last_sample_timestamp',
        MagicMock(return_value=mock_last_sample_timestamp))
 def test_no_connection():
     sync = test_initialize()
     sync._extract_series(pair_test, timeframe_test)
     assert sync._get_last_sample_timestamp.call_count == 1
-    assert multiple_stocks_sync.url_generator.call_count == 2
+    assert exchange_db_sync.url_generator.call_count == 2
     assert sync._check_bitfinex_connection.call_count == 2
-    assert multiple_stocks_sync.compare_timestamps.call_count == 1
-    assert sync.client.write_api().write.call_count == 0
+    assert exchange_db_sync.compare_timestamps.call_count == 1
+    assert sync.influx_client.write_api().write.call_count == 0
 
 
 # Write call throws exception, first attempt. 'last_sample_timestamp_ns' shouldn't be updated that time.
 @patch('influxdb_client.client.write_api.WriteApi.write',
        MagicMock(side_effect=[Exception('Test'), True]))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.compare_timestamps',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.compare_timestamps',
        MagicMock(side_effect=[False, False, True, True]))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync._check_bitfinex_connection',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.DataSync._check_bitfinex_connection',
        MagicMock(return_value=True))
 @patch('requests.get', MagicMock(return_value=pickle.load(open("./tests/bitfinex_response_candle.p", "rb"))))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.url_generator',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.url_generator',
        MagicMock(return_value=mock_url_generated))
-@patch('bitfinex_extractor_influxdb.multiple_stocks_sync.DataSync._get_last_sample_timestamp',
+@patch('bitfinex_extractor_influxdb.exchange_db_sync.DataSync._get_last_sample_timestamp',
        MagicMock(return_value=mock_last_sample_timestamp))
 def test_write_call_exception():
     sync = test_initialize()
     sync._extract_series(pair_test, timeframe_test)
     assert sync._get_last_sample_timestamp.call_count == 1
-    assert multiple_stocks_sync.url_generator.call_count == 3
+    assert exchange_db_sync.url_generator.call_count == 3
     assert sync._check_bitfinex_connection.call_count == 3
-    assert multiple_stocks_sync.compare_timestamps.call_count == 3
-    assert sync.client.write_api().write.call_count == 2
+    assert exchange_db_sync.compare_timestamps.call_count == 3
+    assert sync.influx_client.write_api().write.call_count == 2
 
-    assert multiple_stocks_sync.url_generator.call_args_list[-2] != multiple_stocks_sync.url_generator.call_args_list[
+    assert exchange_db_sync.url_generator.call_args_list[-2] != exchange_db_sync.url_generator.call_args_list[
         -1]
 
 
@@ -208,7 +208,7 @@ def test_check_bitfinex_connection_limit_rate():
 @patch('time.sleep', MagicMock(side_effect=None))
 def test_check_bitfinex_connection_maintenance():
     sync = test_initialize()
-    assert sync._check_bitfinex_connection(['error', multiple_stocks_sync.ERROR_CODE_START_MAINTENANCE]) == False
+    assert sync._check_bitfinex_connection(['error', exchange_db_sync.ERROR_CODE_START_MAINTENANCE]) == False
 
 
 url_generator_pair = 'tBTCUSD'
@@ -218,10 +218,11 @@ mock_url_generator_expected = 'https://api-pub.bitfinex.com/v2/candles/trade:14D
 
 
 def test_url_generator():
-    assert multiple_stocks_sync.url_generator(url_generator_pair, url_generator_timeframe,
-                                              url_generator_last_sample_timestamp_ns) == mock_url_generator_expected
+    assert exchange_db_sync.url_generator(url_generator_pair, url_generator_timeframe,
+                                          url_generator_last_sample_timestamp_ns) == mock_url_generator_expected
 
 
 def test_compare_timestamp():
-    assert multiple_stocks_sync.compare_timestamps(url_generator_last_sample_timestamp_ns,
-                                                   url_generator_last_sample_timestamp_ns) == True
+    assert exchange_db_sync.compare_timestamps(url_generator_last_sample_timestamp_ns,
+                                               url_generator_last_sample_timestamp_ns) == True
+
