@@ -35,7 +35,8 @@ Create two tables:
 
 
     * timeframe: ['1m', '5m', '15m', '30m', '1h', '3h', '6h', '12h', '1D', '7D', '14D', '1M']
-    Those are the different time interval we are interested for each pair.
+
+Those are the different time interval we are interested for each pair.
 
 
 Set Up InfluxDB into your computer:
