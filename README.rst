@@ -21,8 +21,27 @@ into your local Database.
 
 Usage
 -----
-DataSync().run() in a container with InfluxDB and MySQL running and configured through setting a ".env"
-file into the root of the project. You have a sample as ".env.sample".
+
+Set Up MySQL into your computer.
+Create two tables:
+
+    * pair: Add the desired timeseries to this table as rows:
+
+    https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange
+
+    * timeframe: ['1m', '5m', '15m', '30m', '1h', '3h', '6h', '12h', '1D', '7D', '14D', '1M']
+    Those are the different time interval we are interested for each pair.
+
+
+Set Up InfluxDB into your computer:
+    * Add a bucket
+
+Credentials and other settings are configured through a .env file in the root of the project.
+There is a template as .env.sample
+
+To start the extraction, execute DataSync().run()
+
+It will start the process, fed the database and synchronize with new values.
 
 
 
