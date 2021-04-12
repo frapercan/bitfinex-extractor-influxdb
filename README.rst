@@ -15,19 +15,40 @@ bitfinex-extractor-influxdb
     :target: https://bitfinex-extractor-influxdb.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-Python bitfinex scrapping functions. Storing results into InfluxDB
+Bitfinex candle extractor into InfluxDB.
+You can replicate BFX values into a TSDB and let it running so it will synchronize the Exchange
+into your local Database.
 
 Usage
 -----
+DataSync().run() in a container with InfluxDB and MySQL running and configured through setting a ".env"
+file into the root of the project. You have a sample as ".env.sample".
+
+
 
 Installation
 ------------
 
+https://portal.influxdata.com/downloads/
+
+https://hub.docker.com/_/mysql
+
 Requirements
 ^^^^^^^^^^^^
 
+influxdb-client
+numpy
+PyMySQL
+pandas
+python-dotenv
+setuptools
+pendulum
+requests
+
 Compatibility
 -------------
+This is just a Python program that can run in any system.
+It was developed using Ubuntu.
 
 Licence
 -------
