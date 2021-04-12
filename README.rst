@@ -31,17 +31,18 @@ Usage
 Set Up MySQL into your computer.
 Create two tables:
 
-    * pair: Add the desired timeseries to this table as rows:
+    * pair: Add the desired timeseries to this table as rows (Choose from symbols):
 
-    https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange
 
     * timeframe: ['1m', '5m', '15m', '30m', '1h', '3h', '6h', '12h', '1D', '7D', '14D', '1M']
     Those are the different time interval we are interested for each pair.
 
 
 Set Up InfluxDB into your computer:
+
     * Add a bucket
 
+Exchange Symbols can be found here: https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange
 Credentials and other settings are configured through a .env file in the root of the project.
 There is a template as .env.sample
 
