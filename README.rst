@@ -19,6 +19,8 @@ Bitfinex candle extractor into InfluxDB.
 You can replicate BFX values into a TSDB and let it running so it will synchronize the Exchange
 into your local Database.
 
+.. image: https://github.com/frapercan/bitfinex-extractor-influxdb/blob/cfe204313aa559e913866b8effcbe419c9673862/graphics/screenshot.png
+
 Usage
 -----
 
