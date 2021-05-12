@@ -19,10 +19,37 @@ Bitfinex candle extractor into InfluxDB.
 You can replicate BFX values into a TSDB and let it running so it will synchronize the Exchange
 into your local Database.
 
+.. image:: https://github.com/frapercan/bitfinex-extractor-influxdb/blob/develop/graphics/screenshot.png
+    :target: https://github.com/frapercan/bitfinex-extractor-influxdb/blob/develop/graphics/screenshot.png
+    :alt: InfluxDB Interface
+
+
+
 Usage
 -----
-DataSync().run() in a container with InfluxDB and MySQL running and configured through setting a ".env"
-file into the root of the project. You have a sample as ".env.sample".
+
+Set Up MySQL into your computer.
+Create two tables:
+
+    * pair: Add the desired timeseries to this table as rows (Choose from symbols):
+
+
+    * timeframe: ['1m', '5m', '15m', '30m', '1h', '3h', '6h', '12h', '1D', '7D', '14D', '1M']
+
+Those are the different time interval we are interested for each pair.
+
+
+Set Up InfluxDB into your computer:
+
+    * Add a bucket
+
+Exchange Symbols can be found here: https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange
+Credentials and other settings are configured through a .env file in the root of the project.
+There is a template as .env.sample
+
+To start the extraction, execute DataSync().run()
+
+It will start the process, fed the database and synchronize with new values.
 
 
 

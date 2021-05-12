@@ -16,14 +16,14 @@ def read(filename):
 
 setup(
     name="bitfinex_extractor_influxdb",
-    version="0.6.0",
+    version="0.7.0",
     url="https://github.com/frapercan/bitfinex-extractor-influxdb.git",
     license='MIT',
 
     author="frapercan",
     author_email="frapercan1@alum.us.es",
 
-    description="Python bitfinex scrapping functions. Storing results into InfluxDB",
+    description="Python bitfinex Extractor into InfluxDB",
     long_description_content_type="text/x-rst",
     long_description=read("README.rst"),
 
