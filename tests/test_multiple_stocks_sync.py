@@ -10,17 +10,15 @@ mock_timeframes = ['1m', '15m', '1h']
 mock_fetch_pairs = [{'id': 3, 'name': 'tBTCUSD'}, {'id': 1, 'name': 'tIOTUSD'}, {'id': 2, 'name': 'tLTCBTC'}]
 mock_fetch_timeframes = [{'id': 3, 'interval': '1m'}, {'id': 1, 'interval': '15m'}, {'id': 2, 'interval': '1h'}]
 
-environment_variables = {
-    "MYSQL_HOST": "MYSQL_HOST",
-    "MYSQL_USER": "MYSQL_USER",
-    "MYSQL_PASSWORD": "MYSQL_PASSWORD",
-    "MYSQL_DATABASE": "MYSQL_DATABASE",
-    "INFLUX_URL": "INFLUXDB_HOST",
-    "INFLUX_TOKEN": "INFLUXDB_TOKEN",
-    "INFLUX_ORG": "INFLUXDB_ORG",
-    "INFLUX_BUCKET": "INFLUXDB_BUCKET",
-    "STARTING_YEAR": "1970",
-    "REQUEST_DELAY": "1",
+config = {
+    "URL": "INFLUXDB_HOST",
+    "TOKEN": "INFLUXDB_TOKEN",
+    "ORGANIZATION": "INFLUXDB_ORG",
+    "BUCKET": "INFLUXDB_BUCKET",
+    "STARTING_YEAR": 1970,
+    "REQUEST_DELAY": 1,
+    "pairs": mock_pairs,
+    "timeframes": mock_timeframes
 }
 
 
@@ -51,54 +49,31 @@ def _mock_response(
     return mock_resp
 
 
-@patch("bitfinex_extractor_influxdb.exchange_db_sync.DataSync.query_timeframes")
-@patch("bitfinex_extractor_influxdb.exchange_db_sync.DataSync.query_pairs")
-@patch("pymysql.connect")
-@patch.dict(os.environ, environment_variables)
-def test_initialize(mock_pymsql, mock_query_pairs, mock_query_timeframes):
-    mock_query_pairs.return_value = mock_pairs
-    mock_query_timeframes.return_value = mock_timeframes
 
-    sync = exchange_db_sync.DataSync()
-    assert sync.pairs == mock_pairs
-    assert sync.timeframes == mock_timeframes
-    assert sync.bucket == environment_variables['INFLUX_BUCKET']
-    assert sync.org == environment_variables['INFLUX_ORG']
-    assert sync.request_delay == int(environment_variables['REQUEST_DELAY'])
+def test_initialize():
+    sync = exchange_db_sync.DataSync(config)
+    assert sync.pairs == config['pairs']
+    assert sync.timeframes == config['timeframes']
+    assert sync.bucket == config['BUCKET']
+    assert sync.org == config['ORGANIZATION']
+    assert sync.request_delay == int(config['REQUEST_DELAY'])
     return sync
-
-
-def test_query_pairs():
-    sync = test_initialize()
-    sync.mysql_cursor.fetchall.return_value = mock_fetch_pairs
-    assert sync.query_pairs() == mock_pairs
-
-
-def test_query_timeframes():
-    sync = test_initialize()
-    sync.mysql_cursor.fetchall.return_value = mock_fetch_timeframes
-    assert sync.query_timeframes() == mock_timeframes
 
 
 @patch("bitfinex_extractor_influxdb.exchange_db_sync.DataSync._extract_series")
 def test_run(mock_extract_series):
     sync = test_initialize()
     sync.run()
-    assert mock_extract_series.call_count == len(mock_pairs) * len(mock_timeframes)
+    assert mock_extract_series.call_count == len(sync.pairs) * len(sync.timeframes)
 
-
-# @patch('requests.get')
-# @patch('influxdb_client.InfluxDBClient.query_api')
-# def test_extract_series(mock_query_api,mock_get):
-#     mock_resp = _mock_response(content="ELEPHANTS")
-#     mock_get.return_value = {'hola'}
-#     mock_query_api.query_dataframe.return_value = 3
-#     sync = test_initialize()
-#     sync._extract_series(pair_test,timeframe_test)
-
-# def test_extract_series():
-#     sync = test_initialize()
-#     sync.run()
+@patch('requests.get')
+@patch('influxdb_client.InfluxDBClient.query_api')
+def test_extract_series(mock_query_api,mock_get):
+    mock_resp = _mock_response(content="ELEPHANTS")
+    mock_get.return_value = mock_resp
+    mock_query_api.query_dataframe.return_value = 3
+    sync = test_initialize()
+    sync._extract_series(mock_pairs[0],mock_timeframes[0])
 
 pair_test = mock_pairs[0]
 timeframe_test = mock_timeframes[0]

@@ -1,18 +1,15 @@
 import json
 import sys
 import time
-import os
-from dotenv import load_dotenv
+import yaml
+
 
 import pendulum
-import pymysql
 import logging
 import requests
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 import datetime
 from datetime import timezone
-
-load_dotenv()
 
 fmt = '[%(asctime)-15s] [%(levelname)s] %(name)s: %(message)s'
 logging.basicConfig(format=fmt, level=logging.INFO, stream=sys.stdout)
@@ -23,6 +20,7 @@ ERROR_CODE_SUBSCRIPTION_FAILED = 10300
 ERROR_CODE_RATE_LIMIT = 11010
 INFO_CODE_RECONNECT = 20051
 ERROR_CODE_START_MAINTENANCE = 20006
+
 
 class DataSync:
     """This is a class representation of an exchange scrapper
@@ -71,35 +69,31 @@ class DataSync:
     :type logger: Logger
     """
 
-    def __init__(self):
-        # Load Environment variables
-        load_dotenv()
-        # Establish connection with MYSQL and generate an interface for querying and writing.
-        self._mysql_cursor = pymysql.connect(**{'host': os.getenv("MYSQL_HOST"),
-                                                'user': os.getenv("MYSQL_USER"),
-                                                'password': os.getenv("MYSQL_PASSWORD"),
-                                                'database': os.getenv("MYSQL_DATABASE"),
-                                                'cursorclass': pymysql.cursors.DictCursor}).cursor()
+    def __init__(self, conf):
+        self.conf = conf
 
-        # Influxdb parameters loaded from MYSQL
-        self._bucket = os.getenv("INFLUX_BUCKET")
-        self._org = os.getenv("INFLUX_ORG")
+        # Load parameters
+        self._bucket = self.conf['BUCKET']
+        self._org = self.conf['ORGANIZATION']
+        self._influxdb_url = self.conf['URL']
+        self._influxdb_token = self.conf['TOKEN']
+        self._influx_client = InfluxDBClient(url=self.influxdb_url, token=self.influxdb_token)
 
-        # Establish connection with INFLUXDB.
-        self._influx_client = InfluxDBClient(url=os.getenv("INFLUX_URL"), token=os.getenv("INFLUX_TOKEN"))
-
-        # Functional configuration through MYSQL interaction and environment variables.
-        self._pairs = self.query_pairs()
-        self._timeframes = self.query_timeframes()
-        self._timeseries_start = datetime.datetime(int(os.getenv("STARTING_YEAR")), 1, 1, tzinfo=timezone.utc)
-        self._request_delay = int(os.getenv("REQUEST_DELAY"))
+        # Functional configuration
+        self._pairs = self.conf['pairs']
+        self._timeframes = self.conf['timeframes']
+        self._timeseries_start = datetime.datetime(self.conf['STARTING_YEAR'], 1, 1, tzinfo=timezone.utc)
+        self._request_delay = int(self.conf['REQUEST_DELAY'])
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
+    @property
+    def influxdb_url(self):
+        return self._influxdb_url
 
     @property
-    def mysql_cursor(self):
-        return self._mysql_cursor
+    def influxdb_token(self):
+        return self._influxdb_token
 
     @property
     def pairs(self):
@@ -108,7 +102,6 @@ class DataSync:
     @property
     def timeframes(self):
         return self._timeframes
-
 
     @property
     def bucket(self):
@@ -134,24 +127,6 @@ class DataSync:
     def logger(self):
         return self._logger
 
-    def query_pairs(self):
-        """Query into MySQL's pair table and return the values.
-
-        :return: A list of pairs
-        :rtype: :class:`list(str)`
-        """
-        self.mysql_cursor.execute("SELECT * FROM pair;")
-        return [pair['name'] for pair in self.mysql_cursor.fetchall()]
-
-    def query_timeframes(self):
-        """Query into MySQL's timeframe table and return the values.
-
-        :return: A list of timeframes
-        :rtype: :class:`list(str)`
-        """
-        self.mysql_cursor.execute("SELECT * FROM timeframe;")
-        return [pair['interval'] for pair in self.mysql_cursor.fetchall()]
-
     def run(self):
         """Extract time series from Bitfinex Exchange and store them into InfluxDB .
         """
@@ -162,6 +137,7 @@ class DataSync:
     def _extract_series(self, pair, timeframe):
         last_sample_timestamp_ns = self._get_last_sample_timestamp(pair, timeframe) * 1000
         while 1:
+            time.sleep(self.request_delay)
             url = url_generator(pair, timeframe, last_sample_timestamp_ns)
             json_response = requests.get(url)
             response = json.loads(json_response.text)
@@ -244,4 +220,9 @@ def compare_timestamps(last_sample_timestamp_ns, last_response_timestamp_ns):
 
 
 if __name__ == "__main__":
-    DataSync().run()
+    with open(r'config.yaml',encoding='utf8') as conf_file:
+        # The FullLoader parameter handles the conversion from YAML
+        # scalar values to Python the dictionary format
+        conf = yaml.load(conf_file, Loader=yaml.FullLoader)
+
+        DataSync(conf).run()
