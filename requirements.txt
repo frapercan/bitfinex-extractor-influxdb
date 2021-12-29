@@ -1,6 +1,6 @@
+pyyaml
 influxdb-client
 numpy
-PyMySQL
 pandas
 python-dotenv
 setuptools
